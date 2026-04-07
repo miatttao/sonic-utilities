@@ -592,6 +592,8 @@ def all(vnet_name):
         vnet_rt_keys = natsorted(vnet_rt_keys) if vnet_rt_keys else []
 
         for k in vnet_rt_keys:
+            if vnet_name and k.split(":")[1] != vnet_name:
+                continue
             r = []
             r.extend(k.split(":", 2)[1:])
             state_db_key = '|'.join(k.split(":", 2))
