@@ -525,29 +525,47 @@ def routes():
     """Show vnet routes related information"""
     pass
 
-def pretty_print(table, r, epval, mac_addr, vni, state):
+def pretty_print(table, r, epval, mac_addr, vni, state, metric=None):
+    import shutil
     endpoints = epval.split(',')
-    row_width = 3
-    max_len = 0
-    for ep in endpoints:
-        max_len = len(ep) if len(ep) > max_len else max_len
-    if max_len > 15:
-        row_width = 2
-    iter = 0
-    while iter < len(endpoints):
-        if iter +row_width > len(endpoints):
-            r.append(",".join(endpoints[iter:]))
-        else:
-            r.append(",".join(endpoints[iter:iter + row_width]))
-        if iter == 0:
-            r.append(mac_addr)
-            r.append(vni)
-            r.append(state)
-        else:
-            r.extend(["", "", ""])
-        iter += row_width
+    # mac_addr and vni are also comma-separated, one value per endpoint
+    # so we split them to pair each one up with its endpoint
+    macs = mac_addr.split(',') if mac_addr else []
+    vnis = vni.split(',') if vni else []
+
+    # pad shorter lists in case some entries are missing
+    while len(macs) < len(endpoints):
+        macs.append('')
+    while len(vnis) < len(endpoints):
+        vnis.append('')
+
+    # use the longest value across all three fields to decide row_width
+    # mac addresses (e.g. aa:bb:cc:dd:ee:ff = 17 chars) or vnis could be
+    # longer than the endpoints, so we can't just look at endpoint length
+    max_len = max(
+        max((len(ep) for ep in endpoints), default=1),
+        max((len(m) for m in macs), default=1),
+        max((len(v) for v in vnis), default=1),
+    )
+
+    # figure out how many entries fit per row based on the worst-case field
+    # the other columns (vnet name, prefix, state, metric) plus borders
+    # take up roughly 60 chars, so whatever is left is for our three fields
+    term_cols = shutil.get_terminal_size((80, 24)).columns
+    avail = max(max_len, term_cols - 60)
+    row_width = max(1, avail // (max_len + 2))
+
+    idx = 0
+    while idx < len(endpoints):
+        r.append(",".join(endpoints[idx:idx + row_width]))
+        r.append(",".join(macs[idx:idx + row_width]))
+        r.append(",".join(vnis[idx:idx + row_width]))
+        if state is not None:
+            r.append(state if idx == 0 else "")
+        r.append(metric if idx == 0 else "")
+        idx += row_width
         table.append(r)
-        r = ["",""]
+        r = ["", ""]
 
 @routes.command()
 @click.argument('vnet_name', required=False)
@@ -581,6 +599,9 @@ def all(vnet_name):
             r.append(val.get('nexthop'))
             r.append(val.get('ifname'))
             table.append(r)
+            continue
+        state = val_state.get('state') if val_state else ""
+        pretty_print(table, r, epval, val.get('mac_address'), val.get('vni'), state, val.get('metric'))
 
         click.echo(tabulate(table, route_header))
 

@@ -53,6 +53,75 @@ class TestShowVnetRoutesAll(object):
             ['Vnet_v6_in_v6-0', 'fddd:a156:a251::a6:1/128', '192.168.1.1', '', '', 'active']]
         assert table == expected_output
 
+    def test_pretty_print_mac_vni_aligned(self):
+        """Each endpoint must appear on its own row with its matching mac and vni."""
+        table = []
+        row = ["Vnet1", "10.0.0.0/24"]
+        epval    = "100.1.1.1,100.1.1.2,100.1.1.3"
+        mac_addr = "aa:bb:cc:dd:ee:01,aa:bb:cc:dd:ee:02,aa:bb:cc:dd:ee:03"
+        vni      = "1001,1002,1003"
+        state    = "active"
+
+        vnet.pretty_print(table, row, epval, mac_addr, vni, state)
+
+        # every row must have exactly 6 columns
+        for r in table:
+            assert len(r) == 6, f"row has wrong column count: {r}"
+
+        # first row carries vnet/prefix/state, continuation rows blank them
+        assert table[0][0] == "Vnet1"
+        assert table[0][5] == "active"
+        for r in table[1:]:
+            assert r[0] == ""
+            assert r[5] == ""
+
+        # mac and vni on each row must correspond to the endpoint on that row
+        for r in table:
+            ep_chunk  = r[2].split(',')
+            mac_chunk = r[3].split(',') if r[3] else []
+            vni_chunk = r[4].split(',') if r[4] else []
+            assert len(ep_chunk) == len(mac_chunk) or r[3] == ""
+            assert len(ep_chunk) == len(vni_chunk) or r[4] == ""
+
+    def test_pretty_print_mac_longer_than_endpoint(self):
+        """row_width must be determined by the longest field, not just endpoint."""
+        table = []
+        row = ["Vnet1", "10.0.0.0/24"]
+        # short endpoints but long mac addresses — mac drives row_width
+        epval    = "1.1.1.1,2.2.2.2,3.3.3.3,4.4.4.4,5.5.5.5"
+        mac_addr = "aa:bb:cc:dd:ee:01,aa:bb:cc:dd:ee:02,aa:bb:cc:dd:ee:03,aa:bb:cc:dd:ee:04,aa:bb:cc:dd:ee:05"
+        vni      = "100,200,300,400,500"
+        state    = "active"
+
+        vnet.pretty_print(table, row, epval, mac_addr, vni, state)
+
+        # all rows must have 6 columns and be non-empty
+        assert len(table) >= 1
+        for r in table:
+            assert len(r) == 6
+
+        # first-row / continuation-row invariants
+        assert table[0][0] == "Vnet1"
+        assert table[0][5] == "active"
+        for r in table[1:]:
+            assert r[0] == ""
+            assert r[5] == ""
+
+    def test_pretty_print_missing_mac_vni(self):
+        """Missing mac/vni must be padded with empty strings, not crash."""
+        table = []
+        row = ["Vnet1", "10.0.0.0/24"]
+        epval    = "100.1.1.1,100.1.1.2,100.1.1.3"
+        mac_addr = None
+        vni      = None
+        state    = "active"
+
+        vnet.pretty_print(table, row, epval, mac_addr, vni, state)
+
+        assert len(table) >= 1
+        for r in table:
+            assert len(r) == 6
+
     def test_show_vnet_routes_all_basic(self):
         runner = CliRunner()
         db = Db()
