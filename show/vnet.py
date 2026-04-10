@@ -525,7 +525,7 @@ def routes():
     """Show vnet routes related information"""
     pass
 
-def pretty_print(table, r, epval, mac_addr, vni, state):
+def pretty_print(table, r, epval, mac_addr, vni, metric, state):
     endpoints = epval.split(',')
     row_width = 3
     max_len = 0
@@ -542,9 +542,10 @@ def pretty_print(table, r, epval, mac_addr, vni, state):
         if iter == 0:
             r.append(mac_addr)
             r.append(vni)
+            r.append(metric)
             r.append(state)
         else:
-            r.extend(["", "", ""])
+            r.extend(["", "", "", ""])
         iter += row_width
         table.append(r)
         r = ["",""]
@@ -555,7 +556,7 @@ def all(vnet_name):
     """Show all vnet routes"""
     namespace = multi_asic_util.get_namespace_from_ctx()
     route_header = ['vnet name', 'prefix', 'nexthop', 'interface']
-    tunnel_header = ['vnet name', 'prefix', 'endpoint', 'mac address', 'vni', 'status', 'metric']
+    tunnel_header = ['vnet name', 'prefix', 'endpoint', 'mac address', 'vni', 'metric', 'status']
 
     ns_list = multi_asic_util.multi_asic_get_ns_list(namespace)
     for ns in ns_list:
@@ -604,13 +605,13 @@ def all(vnet_name):
                 r.append(epval)
                 r.append(val.get('mac_address'))
                 r.append(val.get('vni'))
+                r.append(val.get('metric'))
                 if val_state:
                     r.append(val_state.get('state'))
-                r.append(val.get('metric'))
                 table.append(r)
                 continue
             state = val_state.get('state') if val_state else ""
-            pretty_print(table, r, epval, val.get('mac_address'), val.get('vni'), state)
+            pretty_print(table, r, epval, val.get('mac_address'), val.get('vni'), val.get('metric'), state)
 
         click.echo(tabulate(table, tunnel_header))
 
