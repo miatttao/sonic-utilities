@@ -1,3 +1,4 @@
+# flake8: noqa: E501
 import os
 from click.testing import CliRunner
 from utilities_common.db import Db
@@ -75,7 +76,7 @@ Vnet_v6_in_v6-0  fddd:a156:a251::a6:1/128  fddd:a100:a251::a10:1,fddd:a101:a251:
 test_v4_in_v4-0  160.162.191.1/32          100.251.7.1                                                                  active
 test_v4_in_v4-0  160.163.191.1/32          100.251.7.1                                                        0         active
 test_v4_in_v4-0  160.164.191.1/32          100.251.7.1
-"""  # noqa: E501
+"""
         assert result.output == expected_output
 
     def test_show_vnet_routes_all_vnetname(self):
@@ -113,7 +114,7 @@ Vnet_v6_in_v6-0  fddd:a156:a251::a6:1/128  fddd:a100:a251::a10:1,fddd:a101:a251:
 test_v4_in_v4-0  160.162.191.1/32          100.251.7.1
 test_v4_in_v4-0  160.163.191.1/32          100.251.7.1                                                                                                           0
 test_v4_in_v4-0  160.164.191.1/32          100.251.7.1
-"""  # noqa: E501
+"""
         assert result.output == expected_output
 
     def test_show_vnet_routes_local_basic(self):
