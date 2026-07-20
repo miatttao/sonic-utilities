@@ -578,13 +578,18 @@ def _show_tunnel_helper(vnet_name=None, appl_db=None, state_db=None):
         r.extend(k.split(":", 2)[1:])
         state_db_key = '|'.join(k.split(":", 2))
         val = appl_db.get_all(appl_db.APPL_DB, k)
+        if not val:
+            continue
         val_state = state_db.get_all(state_db.STATE_DB, state_db_key)
         epval = val.get('endpoint')
+        mac_addr = val.get('mac_address') or ''
+        vni = val.get('vni') or ''
         state = val_state.get('state') if val_state else ""
         raw_metric = val.get('metric')
-        metric = int(raw_metric) if raw_metric else ''
-        pretty_print(table, r, epval,
-                     val.get('mac_address') or '', val.get('vni') or '',
-                     metric, state)
+        try:
+            metric = int(raw_metric) if raw_metric else ''
+        except (ValueError, TypeError):
+            metric = raw_metric
+        pretty_print_tunnel(table, r, epval, mac_addr, vni, metric, state)
 
     click.echo(tabulate(table, tunnel_header))
